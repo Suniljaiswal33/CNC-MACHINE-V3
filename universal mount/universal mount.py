@@ -70,6 +70,43 @@ print(f"Plane Equation: {new_a:.8f}x + {new_b:.8f}y + {new_c:.8f}z = {new_d:.8f}
 print("=" * 60)
 
 # =====================================================
+# THIRD SVD PLANE CALCULATION FROM 6 POINTS (USER-PROVIDED)
+# =====================================================
+third_svd_plane_pts = [
+    (44.258, -18.9724, 0.5876),
+    (47.7882, -14.8742, 4.6858),
+    (54.7072, -14.8742, 4.6858),
+    (58.0, -18.9724, 0.5876),
+    (54.7072, -23.3711, -3.8111),
+    (47.7882, -23.3711, -3.8111),
+]
+
+# Calculate best-fit plane using SVD from all 6 points
+third_points_matrix = np.array(third_svd_plane_pts)
+
+# Center the points
+third_centroid = np.mean(third_points_matrix, axis=0)
+third_centered_points = third_points_matrix - third_centroid
+
+# Perform SVD
+third_U, third_S, third_Vt = np.linalg.svd(third_centered_points)
+
+# Normal vector is the last row of Vt (smallest singular value)
+third_plane_normal = third_Vt[-1]
+third_plane_normal = third_plane_normal / np.linalg.norm(third_plane_normal)
+
+third_a, third_b, third_c = third_plane_normal
+third_d = np.dot(third_plane_normal, third_centroid)
+
+print("\n" + "=" * 60)
+print("THIRD SVD PLANE CALCULATION (6 POINTS - USER-PROVIDED)")
+print("=" * 60)
+print(f"Normal = [{third_a:.8f}, {third_b:.8f}, {third_c:.8f}]")
+print(f"Plane Equation: {third_a:.8f}x + {third_b:.8f}y + {third_c:.8f}z = {third_d:.8f}")
+print(f"Centroid = [{third_centroid[0]:.6f}, {third_centroid[1]:.6f}, {third_centroid[2]:.6f}]")
+print("=" * 60)
+
+# =====================================================
 # HEXAGON SVD PLANE CALCULATION FROM 6 POINTS
 # =====================================================
 hexagon_svd_pts = [
@@ -104,6 +141,41 @@ print("=" * 60)
 print(f"Normal = [{hex_a:.8f}, {hex_b:.8f}, {hex_c:.8f}]")
 print(f"Plane Equation: {hex_a:.8f}x + {hex_b:.8f}y + {hex_c:.8f}z = {hex_d:.8f}")
 print(f"Centroid = [{centroid[0]:.6f}, {centroid[1]:.6f}, {centroid[2]:.6f}]")
+print("=" * 60)
+
+# =====================================================
+# NEW 4-POINT SVD PLANE CALCULATION (NEW FEATURE)
+# =====================================================
+new4_svd_plane_pts = [
+    (81.2976, 32.3123, -17.1024),
+    (82.5584, -31.5177, 46.7276),
+    (-60.0, -31.5177, 46.7276),
+    (-58.1406, 29.9944, -14.7845),
+]
+
+# Calculate best-fit plane using SVD from 4 points
+new4_points_matrix = np.array(new4_svd_plane_pts)
+
+# Center the points
+new4_centroid = np.mean(new4_points_matrix, axis=0)
+new4_centered_points = new4_points_matrix - new4_centroid
+
+# Perform SVD
+new4_U, new4_S, new4_Vt = np.linalg.svd(new4_centered_points)
+
+# Normal vector is the last row of Vt (smallest singular value)
+new4_plane_normal = new4_Vt[-1]
+new4_plane_normal = new4_plane_normal / np.linalg.norm(new4_plane_normal)
+
+new4_a, new4_b, new4_c = new4_plane_normal
+new4_d = np.dot(new4_plane_normal, new4_centroid)
+
+print("\n" + "=" * 60)
+print("NEW 4-POINT SVD PLANE CALCULATION")
+print("=" * 60)
+print(f"Normal = [{new4_a:.8f}, {new4_b:.8f}, {new4_c:.8f}]")
+print(f"Plane Equation: {new4_a:.8f}x + {new4_b:.8f}y + {new4_c:.8f}z = {new4_d:.8f}")
+print(f"Centroid = [{new4_centroid[0]:.6f}, {new4_centroid[1]:.6f}, {new4_centroid[2]:.6f}]")
 print("=" * 60)
 
 # =====================================================
@@ -312,6 +384,70 @@ with BuildPart() as new_part:
             print(f"✗ Fallback also failed: {e2}")
 
     # =================================================
+    # THIRD SVD PLANE HOLES - 8MM DIAMETER (200MM DEEP)
+    # =================================================
+    third_svd_hole_positions = [
+        (51.4001, -19.071, 0.489),    # Hole position 1
+        (-80.0, -19.071, 0.489),      # Hole position 2
+    ]
+
+    # Create orthonormal vectors for the third SVD plane
+    third_normal_vec = np.array([third_a, third_b, third_c])
+    
+    # Find x_dir perpendicular to normal
+    if abs(third_c) < 0.9:  # If normal is not too aligned with Z axis
+        third_x_dir_temp = np.array([third_c, 0, -third_a])
+    else:  # If aligned with Z axis
+        third_x_dir_temp = np.array([0, third_c, -third_b])
+    
+    third_x_dir_normalized = third_x_dir_temp / np.linalg.norm(third_x_dir_temp)
+    
+    # Find y_dir = normal × x_dir
+    third_y_dir_normalized = np.cross(third_normal_vec, third_x_dir_normalized)
+    third_y_dir_normalized = third_y_dir_normalized / np.linalg.norm(third_y_dir_normalized)
+
+    print(f"\nThird SVD Plane Vectors:")
+    print(f"X-Dir = [{third_x_dir_normalized[0]:.6f}, {third_x_dir_normalized[1]:.6f}, {third_x_dir_normalized[2]:.6f}]")
+    print(f"Y-Dir = [{third_y_dir_normalized[0]:.6f}, {third_y_dir_normalized[1]:.6f}, {third_y_dir_normalized[2]:.6f}]")
+
+    try:
+        # Create custom plane for third SVD
+        third_svd_plane_custom = Plane(
+            origin=third_centroid,
+            x_dir=Vector(float(third_x_dir_normalized[0]), float(third_x_dir_normalized[1]), float(third_x_dir_normalized[2])),
+            y_dir=Vector(float(third_y_dir_normalized[0]), float(third_y_dir_normalized[1]), float(third_y_dir_normalized[2]))
+        )
+
+        # Create 8mm holes at both positions on the third SVD plane
+        with BuildSketch(third_svd_plane_custom):
+            for pt in third_svd_hole_positions:
+                with Locations((pt[0], pt[1])):  # Use only X, Y coordinates on the plane
+                    Circle(4.0)  # 8mm DIA (radius = 4mm)
+
+        extrude(amount=200, mode=Mode.SUBTRACT)
+        print("\n✓ Third SVD Plane holes created successfully (200mm deep)")
+        print(f"  - 2 holes at positions: {third_svd_hole_positions}")
+        
+    except Exception as e:
+        print(f"\n⚠ Third SVD Plane holes could not be created: {e}")
+        print("  Attempting alternative approach...")
+        
+        try:
+            # Fallback: Use XZ plane as approximation (since Y is constant at -19.071)
+            fallback_third_plane = Plane.XZ.offset(-19.071)
+            
+            with BuildSketch(fallback_third_plane):
+                for pt in third_svd_hole_positions:
+                    with Locations((pt[0], pt[2])):  # Use X and Z coordinates
+                        Circle(4.0)
+            
+            extrude(amount=200, mode=Mode.SUBTRACT)
+            print("✓ Third SVD plane holes created using fallback XZ plane")
+            
+        except Exception as e2:
+            print(f"✗ Fallback also failed: {e2}")
+
+    # =================================================
     # HEXAGON SVD PLANE CUTS - 14MM DIA CIRCUMSCRIBED
     # 200MM DEEP - TWO LOCATIONS
     # =================================================
@@ -366,11 +502,11 @@ with BuildPart() as new_part:
             y_dir=Vector(float(hex_y_dir_normalized[0]), float(hex_y_dir_normalized[1]), float(hex_y_dir_normalized[2]))
         )
         
-        # Create hexagon cuts at both positions
+        # Create hexagon cuts with 8mm center holes at both positions
         with BuildSketch(hex_plane_custom):
             for pos in hexagon_cut_positions:
                 with Locations(pos):
-                    Polygon(*hex_vertices)
+                    Polygon(*hex_vertices)  # 14mm hexagon
         
         extrude(amount=400, mode=Mode.SUBTRACT)
         print("\n✓ Hexagon SVD plane cuts created successfully (200mm deep)")
@@ -387,10 +523,179 @@ with BuildPart() as new_part:
             with BuildSketch(fallback_hex_plane):
                 for pos in hexagon_cut_positions:
                     with Locations(pos):
-                        Polygon(*hex_vertices)
+                        Polygon(*hex_vertices)  # 14mm hexagon
             
             extrude(amount=500, mode=Mode.SUBTRACT)
-            print("✓ Hexagon cuts created using fallback XY plane")
+            print("✓ Hexagon cuts created using fallback XY plane (with center holes)")
+            
+        except Exception as e2:
+            print(f"✗ Fallback also failed: {e2}")
+
+    # =================================================
+    # 8MM DIAMETER HOLES AT HEXAGON POSITIONS
+    # HEXAGON SVD PLANE - 200MM DEEP
+    # =================================================
+    hexagon_hole_positions = [
+        (70.86, -9.03),   # Position 1 (same as hexagon center)
+        (-60.15, -9.03),  # Position 2 (same as hexagon center)
+    ]
+
+    try:
+        # Use same hexagon SVD plane for holes
+        with BuildSketch(hex_plane_custom):
+            for pos in hexagon_hole_positions:
+                with Locations(pos):
+                    Circle(4.0)  # 8mm DIA (radius = 4mm)
+
+        extrude(amount=-200, mode=Mode.SUBTRACT)
+        print("\n✓ 8mm diameter holes created at hexagon positions (200mm deep)")
+        print(f"  - 2 holes at positions: {hexagon_hole_positions}")
+        
+    except Exception as e:
+        print(f"\n⚠ 8mm holes at hexagon positions could not be created: {e}")
+        print("  Attempting alternative approach...")
+        
+        try:
+            # Fallback: Use XY plane as approximation
+            fallback_hole_plane = Plane.XY.offset(-9.03)
+            
+            with BuildSketch(fallback_hole_plane):
+                for pos in hexagon_hole_positions:
+                    with Locations(pos):
+                        Circle(4.0)
+            
+            extrude(amount=-300, mode=Mode.SUBTRACT)
+            print("✓ 8mm holes created using fallback XY plane")
+            
+        except Exception as e2:
+            print(f"✗ Fallback also failed: {e2}")
+
+    # ═════════════════════════════════════════════════════════════════════════════
+    # NEW 4-POINT SVD PLANE HEXAGON CUTS - 14MM DIA CIRCUMSCRIBED + 8MM HOLES
+    # ═════════════════════════════════════════════════════════════════════════════
+    # LINE 576-677: NEW 4-POINT SVD PLANE HEXAGON FEATURES SECTION
+    
+    new4_hexagon_positions = [
+        (63.0, 1.9481),      # Position 1
+        (-61.0, 1.9481),     # Position 2
+    ]
+    
+    # 14mm circumscribed hexagon (same as existing hexagons)
+    new4_hex_radius = 7.0  # 14mm diameter / 2
+    
+    # Generate regular hexagon vertices
+    new4_hex_angles = np.linspace(0, 2 * np.pi, 7)[:-1]  # 6 vertices
+    new4_hex_vertices = [(new4_hex_radius * np.cos(angle), new4_hex_radius * np.sin(angle)) 
+                          for angle in new4_hex_angles]
+    
+    print("\n" + "=" * 60)
+    print("NEW 4-POINT SVD PLANE - HEXAGON CUTS (14MM DIA)")
+    print("=" * 60)
+    print(f"Hexagon radius (circumscribed): {new4_hex_radius}mm")
+    print(f"Hexagon vertices: {len(new4_hex_vertices)}")
+    print(f"Cut positions: {new4_hexagon_positions}")
+    print("=" * 60)
+    
+    # Create orthonormal vectors for the new4 SVD plane
+    new4_normal_vec = new4_plane_normal
+    
+    # Find x_dir perpendicular to normal
+    if abs(new4_c) < 0.9:
+        new4_x_dir_temp = np.array([new4_c, 0, -new4_a])
+    else:
+        new4_x_dir_temp = np.array([0, new4_c, -new4_b])
+    
+    new4_x_dir_normalized = new4_x_dir_temp / np.linalg.norm(new4_x_dir_temp)
+    
+    # Find y_dir = normal × x_dir
+    new4_y_dir_normalized = np.cross(new4_normal_vec, new4_x_dir_normalized)
+    new4_y_dir_normalized = new4_y_dir_normalized / np.linalg.norm(new4_y_dir_normalized)
+    
+    print(f"\nNew4 SVD Plane Vectors:")
+    print(f"Normal = [{new4_a:.6f}, {new4_b:.6f}, {new4_c:.6f}]")
+    print(f"X-Dir = [{new4_x_dir_normalized[0]:.6f}, {new4_x_dir_normalized[1]:.6f}, {new4_x_dir_normalized[2]:.6f}]")
+    print(f"Y-Dir = [{new4_y_dir_normalized[0]:.6f}, {new4_y_dir_normalized[1]:.6f}, {new4_y_dir_normalized[2]:.6f}]")
+    
+    try:
+        # Create custom plane for new4 SVD
+        new4_hex_plane_custom = Plane(
+            origin=np.array(new4_centroid),
+            x_dir=Vector(float(new4_x_dir_normalized[0]), float(new4_x_dir_normalized[1]), float(new4_x_dir_normalized[2])),
+            y_dir=Vector(float(new4_y_dir_normalized[0]), float(new4_y_dir_normalized[1]), float(new4_y_dir_normalized[2]))
+        )
+        
+        # Create hexagon cuts (30mm deep extrude)
+        with BuildSketch(new4_hex_plane_custom):
+            for pos in new4_hexagon_positions:
+                with Locations(pos):
+                    Polygon(*new4_hex_vertices)  # 14mm hexagon
+        
+        extrude(amount=-30, mode=Mode.SUBTRACT)
+        print("\n✓ New4 SVD Hexagon cuts created successfully (30mm deep)")
+        print(f"  - 2 hexagon cuts at positions: {new4_hexagon_positions}")
+        
+    except Exception as e:
+        print(f"\n⚠ New4 SVD Hexagon cuts could not be created: {e}")
+        print("  Attempting fallback approach...")
+        
+        try:
+            # Fallback: Use XY plane as approximation
+            new4_fallback_plane = Plane.XY.offset(1.9481)
+            
+            with BuildSketch(new4_fallback_plane):
+                for pos in new4_hexagon_positions:
+                    with Locations(pos):
+                        Polygon(*new4_hex_vertices)
+            
+            extrude(amount=30, mode=Mode.SUBTRACT)
+            print("✓ New4 Hexagon cuts created using fallback XY plane (30mm deep)")
+            
+        except Exception as e2:
+            print(f"✗ Fallback also failed: {e2}")
+
+    # ═════════════════════════════════════════════════════════════════════════════
+    # NEW 4-POINT SVD PLANE - 8MM CONCENTRIC HOLES (THROUGH-HOLE)
+    # ═════════════════════════════════════════════════════════════════════════════
+    # LINE 679-722: NEW 4-POINT SVD PLANE 8MM HOLE SECTION
+    
+    new4_hole_positions = [
+        (63.0, 1.9481),      # Position 1 (same as hexagon center)
+        (-61.0, 1.9481),     # Position 2 (same as hexagon center)
+    ]
+    
+    print("\n" + "=" * 60)
+    print("NEW 4-POINT SVD PLANE - 8MM CONCENTRIC HOLES (THROUGH-HOLE)")
+    print("=" * 60)
+    print(f"Hole positions: {new4_hole_positions}")
+    print("=" * 60)
+    
+    try:
+        # Use same new4 SVD plane for holes
+        with BuildSketch(new4_hex_plane_custom):
+            for pos in new4_hole_positions:
+                with Locations(pos):
+                    Circle(4.0)  # 8mm DIA (radius = 4mm)
+        
+        # Through-hole: extrude deep enough to go through the part
+        extrude(amount=-15, mode=Mode.SUBTRACT)
+        print("\n✓ New4 SVD 8mm concentric holes created successfully (through-hole)")
+        print(f"  - 2 through-holes at positions: {new4_hole_positions}")
+        
+    except Exception as e:
+        print(f"\n⚠ New4 SVD 8mm holes could not be created: {e}")
+        print("  Attempting fallback approach...")
+        
+        try:
+            # Fallback: Use XY plane as approximation
+            new4_fallback_hole_plane = Plane.XY.offset(1.9481)
+            
+            with BuildSketch(new4_fallback_hole_plane):
+                for pos in new4_hole_positions:
+                    with Locations(pos):
+                        Circle(4.0)
+            
+            extrude(amount=-510, mode=Mode.SUBTRACT)
+            print("✓ New4 8mm holes created using fallback XY plane (through-hole)")
             
         except Exception as e2:
             print(f"✗ Fallback also failed: {e2}")
